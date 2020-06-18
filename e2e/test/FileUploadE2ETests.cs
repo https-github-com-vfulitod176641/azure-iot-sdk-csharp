@@ -52,6 +52,8 @@ namespace Microsoft.Azure.Devices.E2ETests
         {
             string smallFile = await GetTestFileNameAsync(FileSizeSmall).ConfigureAwait(false);
             await UploadFileAsync(transportType, smallFile, x509auth: x509auth).ConfigureAwait(false);
+
+            await Task.Delay(30 * 1000).ConfigureAwait(false);
         }
 
         [TestMethod]
