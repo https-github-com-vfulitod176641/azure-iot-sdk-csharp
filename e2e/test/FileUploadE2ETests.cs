@@ -19,6 +19,7 @@ namespace Microsoft.Azure.Devices.E2ETests
     [TestClass]
     [TestCategory("E2E")]
     [TestCategory("IoTHub")]
+    [TestCategory("FileUpload")]
     public class FileUploadE2ETests : IDisposable
     {
         private readonly string _devicePrefix = $"E2E_{nameof(FileUploadE2ETests)}_";

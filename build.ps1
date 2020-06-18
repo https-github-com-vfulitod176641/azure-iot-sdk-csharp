@@ -69,7 +69,8 @@ Param(
     [string] $verbosity = "q",
     [string] $framework = "*",
     [switch] $skipIotHubTests,
-    [switch] $skipDPSTests
+    [switch] $skipDPSTests,
+    [switch] $selectiveCategory,
 )
 
 Function CheckSignTools()
@@ -341,6 +342,26 @@ try
 
         # Samples
         BuildProject security\tpm\samples "SecurityProvider for TPM Samples"
+    }
+
+    if ($selectiveCategory)
+    {
+        Write-Host
+        Write-Host -ForegroundColor Cyan "Selective End-to-end Test execution"
+        Write-Host
+
+        if ($env:AZURE_IOT_LOCALPACKAGES -ne "")
+        {
+            Write-Host -ForegroundColor Magenta "IMPORTANT: Using local packages."
+        }
+
+        # Override verbosity to display individual test execution.
+        $oldVerbosity = $verbosity
+        $verbosity = "normal"
+
+        RunTests "E2E tests" -framework $framework "TestCategory=FileUpload"
+
+        $verbosity = $oldVerbosity
     }
 
     if ($stresstests)
