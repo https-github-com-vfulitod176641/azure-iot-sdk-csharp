@@ -36,6 +36,24 @@ namespace Microsoft.Azure.Devices.E2ETests
             _listener = TestConfig.StartEventListener();
         }
 
+        [DataTestMethod]
+        [DataRow(Client.TransportType.Amqp_Tcp_Only, false)]
+        [DataRow(Client.TransportType.Amqp_WebSocket_Only, false)]
+        [DataRow(Client.TransportType.Mqtt_Tcp_Only, false)]
+        [DataRow(Client.TransportType.Mqtt_WebSocket_Only, false)]
+        [DataRow(Client.TransportType.Http1, false)]
+        [DataRow(Client.TransportType.Amqp_Tcp_Only, true)]
+        [DataRow(Client.TransportType.Amqp_WebSocket_Only, true)]
+        [DataRow(Client.TransportType.Mqtt_Tcp_Only, true)]
+        [DataRow(Client.TransportType.Mqtt_WebSocket_Only, true)]
+        [DataRow(Client.TransportType.Http1, true)]
+        [TestCategory("LongRunning")]
+        public async Task FileUpload_TestMethod(Client.TransportType transportType, bool x509auth)
+        {
+            string smallFile = await GetTestFileNameAsync(FileSizeSmall).ConfigureAwait(false);
+            await UploadFileAsync(transportType, smallFile, x509auth: x509auth).ConfigureAwait(false);
+        }
+
         [TestMethod]
         [TestCategory("LongRunning")]
         public async Task FileUpload_SmallFile_Http()
