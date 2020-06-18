@@ -19,14 +19,21 @@ namespace SimpleThermostat
 
         private static async Task RunSampleAsync()
         {
+            // This sample follows the following workflow:
+            // -> Initialize device client.
+            // -> Set handler to receive "target temperature" updates.
+            // -> Set handler to receive "reboot" command.
+            // -> Retrieve current "target temperature".
+            // -> Send "current temerature" update over both telemetry and property update.
+
             Console.WriteLine($">> {DateTime.Now}: Initialize the device client");
-            InitializeDeviceClient();
+            await InitializeDeviceClient().ConfigureAwait(false);
 
             Console.WriteLine($">> {DateTime.Now}: Send current temperature reading...");
             await SendCurrentTemperatureAsync().ConfigureAwait(false);
         }
 
-        private static void InitializeDeviceClient()
+        private static async Task InitializeDeviceClient()
         {
             var options = new ClientOptions
             {
@@ -42,13 +49,16 @@ namespace SimpleThermostat
             {
                 Console.WriteLine($">> {DateTime.Now}: Connection status change registered - status={status}, reason={reason}");
             });
+
+            // This will open the device client connection over Mqtt.
+            await s_deviceClient.OpenAsync().ConfigureAwait(false);
         }
 
         private static async Task SendCurrentTemperatureAsync()
         {
             string telemetryName = "temperature";
 
-            // Generate a random value between 40F and 90F for the temperature
+            // Generate a random value between 40F and 90F for the current temperature reading.
             double currentTemperature = new Random().NextDouble() * 50 + 40;
 
             string telemetryPayload = $"{{ \"{telemetryName}\": {currentTemperature} }}";
@@ -59,7 +69,7 @@ namespace SimpleThermostat
             };
 
             await s_deviceClient.SendEventAsync(message).ConfigureAwait(false);
-            Console.WriteLine($">> {DateTime.Now}: Send current temperature {currentTemperature}.");
+            Console.WriteLine($">> {DateTime.Now}: Sent current temperature {currentTemperature} over telemetry.");
         }
 
         private static Task SetTargetTemperature()
