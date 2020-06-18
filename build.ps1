@@ -70,7 +70,7 @@ Param(
     [string] $framework = "*",
     [switch] $skipIotHubTests,
     [switch] $skipDPSTests,
-    [switch] $selectiveCategory,
+    [switch] $selectiveCategory
 )
 
 Function CheckSignTools()
