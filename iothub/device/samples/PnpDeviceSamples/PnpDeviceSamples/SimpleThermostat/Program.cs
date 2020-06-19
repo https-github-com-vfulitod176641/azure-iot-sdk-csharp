@@ -40,10 +40,8 @@ namespace SimpleThermostat
             await SendCurrentTemperatureAsync().ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// Initialize the device client instance over Mqtt protocol, setting the ModelId into ClientOptions, and open the connection.
-        /// This method also sets a connection status change callback.
-        /// </summary>
+        // Initialize the device client instance over Mqtt protocol, setting the ModelId into ClientOptions, and open the connection.
+        // This method also sets a connection status change callback.
         private static async Task InitializeDeviceClientAsync()
         {
             var options = new ClientOptions
@@ -65,12 +63,8 @@ namespace SimpleThermostat
             await s_deviceClient.OpenAsync().ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// The desired property update callback, which receives the target temperture as a desired property update,
-        /// and updates the current temperature value over telemetry and reported property update.
-        /// </summary>
-        /// <param name="desiredProperties">The target temperature update patch.</param>
-        /// <param name="userContext">The user context supplied to the callback.</param>
+        // The desired property update callback, which receives the target temperture as a desired property update,
+        // and updates the current temperature value over telemetry and reported property update.
         private static async Task TargetTemperatureUpdateCallbackAsync(TwinCollection desiredProperties, object userContext)
         {
             PrintLog($"Received an update for target temperature");
@@ -121,13 +115,8 @@ namespace SimpleThermostat
             PrintLog($"Sent current temperature {targetTemperature} over reoprted property update.");
         }
 
-        /// <summary>
-        /// The callback to handle "reboot" command. This method will send a temeprature update (of 0) over telemetry, 
-        /// and also reset the temperature property to 0.
-        /// </summary>
-        /// <param name="request">The command request. The can have an optional payload in it.</param>
-        /// <param name="userContext">The user context supplied to the callback.</param>
-        /// <returns></returns>
+        // The callback to handle "reboot" command. This method will send a temeprature update (of 0) over telemetry, 
+        // and also reset the temperature property to 0.
         private static async Task<MethodResponse> HandleRebootCommandAsync(MethodRequest request, object userContext)
         {
             PrintLog("Rebooting thermostat: resetting current temperature reading to 0.0");
