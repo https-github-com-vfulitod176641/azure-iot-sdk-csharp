@@ -33,6 +33,9 @@ namespace SimpleThermostat
             PrintLog($"Set handler to receive \"target temperature\" updates.");
             await s_deviceClient.SetDesiredPropertyUpdateCallbackAsync(TargetTemperatureUpdateCallbackAsync, s_deviceClient).ConfigureAwait(false);
 
+            PrintLog($"Set handler for \"reboot\" command");
+            await s_deviceClient.SetMethodHandlerAsync("reboot", HandleRebootCommandAsync, s_deviceClient);
+
             PrintLog($"Send current temperature reading.");
             await SendCurrentTemperatureAsync().ConfigureAwait(false);
         }
@@ -87,8 +90,8 @@ namespace SimpleThermostat
 
         private static async Task UpdateCurrentTemperatureAsync(double targetTemperature)
         {
+            // Send temperature update over telemetry.
             string telemetryName = "temperature";
-
             string telemetryPayload = $"{{ \"{telemetryName}\": {targetTemperature} }}";
             var message = new Message(Encoding.UTF8.GetBytes(telemetryPayload))
             {
@@ -98,16 +101,20 @@ namespace SimpleThermostat
 
             await s_deviceClient.SendEventAsync(message).ConfigureAwait(false);
             PrintLog($"Sent current temperature {targetTemperature} over telemetry.");
+
+            // Send temperature update over reported property.
+            var reportedProperty = new TwinCollection();
+            reportedProperty["currenttemperature"] = targetTemperature;
+            await s_deviceClient.UpdateReportedPropertiesAsync(reportedProperty).ConfigureAwait(false);
+            PrintLog($"Sent current temperature {targetTemperature} over reoprted property update.");
         }
 
-        private static Task SetTargetTemperature()
+        private static async Task<MethodResponse> HandleRebootCommandAsync(MethodRequest request, object userContext)
         {
-            return Task.CompletedTask;
-        }
+            PrintLog("Rebooting thermostat: resetting current temperature reading to 0.0");
+            await UpdateCurrentTemperatureAsync(0).ConfigureAwait(false);
 
-        private static Task HandleRebootCommand()
-        {
-            return Task.CompletedTask;
+            return new MethodResponse(200);
         }
 
         private static T GetPropertyFromTwin<T>(TwinCollection collection, string propertyName)
