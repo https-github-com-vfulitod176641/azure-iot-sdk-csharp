@@ -25,7 +25,7 @@ namespace SimpleThermostat
             // -> Set handler to receive "target temperature" updates.
             // -> Set handler to receive "reboot" command.
             // -> Retrieve current "target temperature".
-            // -> Send "current temperature" over both telemetry and property channels.
+            // -> Send "current temperature" over both telemetry and property updates.
 
             PrintLog($"Initialize the device client.");
             await InitializeDeviceClientAsync().ConfigureAwait(false);
