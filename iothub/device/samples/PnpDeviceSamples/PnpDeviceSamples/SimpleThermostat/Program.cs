@@ -2,6 +2,7 @@
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Azure.Devices.Client;
+using Microsoft.Azure.Devices.Shared;
 
 namespace SimpleThermostat
 {
@@ -20,20 +21,23 @@ namespace SimpleThermostat
         private static async Task RunSampleAsync()
         {
             // This sample follows the following workflow:
-            // -> Initialize device client.
+            // -> Initialize device client instance.
             // -> Set handler to receive "target temperature" updates.
             // -> Set handler to receive "reboot" command.
             // -> Retrieve current "target temperature".
-            // -> Send "current temerature" update over both telemetry and property update.
+            // -> Send "current temperature" over both telemetry and property channels.
 
-            Console.WriteLine($">> {DateTime.Now}: Initialize the device client");
-            await InitializeDeviceClient().ConfigureAwait(false);
+            PrintLog($"Initialize the device client.");
+            await InitializeDeviceClientAsync().ConfigureAwait(false);
 
-            Console.WriteLine($">> {DateTime.Now}: Send current temperature reading...");
+            PrintLog($"Set handler to receive \"target temperature\" updates.");
+            await s_deviceClient.SetDesiredPropertyUpdateCallbackAsync(TargetTemperatureUpdateCallbackAsync, s_deviceClient).ConfigureAwait(false);
+
+            PrintLog($"Send current temperature reading.");
             await SendCurrentTemperatureAsync().ConfigureAwait(false);
         }
 
-        private static async Task InitializeDeviceClient()
+        private static async Task InitializeDeviceClientAsync()
         {
             var options = new ClientOptions
             {
@@ -44,14 +48,23 @@ namespace SimpleThermostat
             // and the device ModelId set in ClientOptions.
             s_deviceClient = DeviceClient.CreateFromConnectionString(DeviceConnectionString, TransportType.Mqtt, options);
 
-            // Register a connection status change callback, that will get triggerred any time the device's connection status changes.
+            // Register a connection status change callback, that will get triggered any time the device's connection status changes.
             s_deviceClient.SetConnectionStatusChangesHandler((status, reason) =>
             {
-                Console.WriteLine($">> {DateTime.Now}: Connection status change registered - status={status}, reason={reason}");
+                PrintLog($"Connection status change registered - status={status}, reason={reason}");
             });
 
             // This will open the device client connection over Mqtt.
             await s_deviceClient.OpenAsync().ConfigureAwait(false);
+        }
+
+        private static async Task TargetTemperatureUpdateCallbackAsync(TwinCollection desiredProperties, object userContext)
+        {
+            PrintLog($"Received an update for target temperature");
+            PrintLog(desiredProperties.ToJson());
+
+            double targetTemperature = GetPropertyFromTwin<double>(desiredProperties, "targettemperature");
+            await UpdateCurrentTemperatureAsync(targetTemperature).ConfigureAwait(false);
         }
 
         private static async Task SendCurrentTemperatureAsync()
@@ -69,7 +82,22 @@ namespace SimpleThermostat
             };
 
             await s_deviceClient.SendEventAsync(message).ConfigureAwait(false);
-            Console.WriteLine($">> {DateTime.Now}: Sent current temperature {currentTemperature} over telemetry.");
+            PrintLog($"Sent current temperature {currentTemperature} over telemetry.");
+        }
+
+        private static async Task UpdateCurrentTemperatureAsync(double targetTemperature)
+        {
+            string telemetryName = "temperature";
+
+            string telemetryPayload = $"{{ \"{telemetryName}\": {targetTemperature} }}";
+            var message = new Message(Encoding.UTF8.GetBytes(telemetryPayload))
+            {
+                ContentEncoding = "utf-8",
+                ContentType = "application/json",
+            };
+
+            await s_deviceClient.SendEventAsync(message).ConfigureAwait(false);
+            PrintLog($"Sent current temperature {targetTemperature} over telemetry.");
         }
 
         private static Task SetTargetTemperature()
@@ -77,14 +105,19 @@ namespace SimpleThermostat
             return Task.CompletedTask;
         }
 
-        private static Task ReceiveTargetTemperatureUpdates()
+        private static Task HandleRebootCommand()
         {
             return Task.CompletedTask;
         }
 
-        private static Task HandleRebootCommand()
+        private static T GetPropertyFromTwin<T>(TwinCollection collection, string propertyName)
         {
-            return Task.CompletedTask;
+            return collection.Contains(propertyName) ? (T)collection[propertyName] : default;
+        }
+
+        private static void PrintLog(string message)
+        {
+            Console.WriteLine($">> {DateTime.Now}: {message}");
         }
     }
 }
