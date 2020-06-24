@@ -38,6 +38,9 @@ namespace SimpleThermostat
 
             PrintLog($"Send current temperature reading.");
             await SendCurrentTemperatureAsync().ConfigureAwait(false);
+
+            PrintLog($"Press any key to exit");
+            Console.ReadKey();
         }
 
         // Initialize the device client instance over Mqtt protocol, setting the ModelId into ClientOptions, and open the connection.
@@ -67,20 +70,26 @@ namespace SimpleThermostat
         // and updates the current temperature value over telemetry and reported property update.
         private static async Task TargetTemperatureUpdateCallbackAsync(TwinCollection desiredProperties, object userContext)
         {
-            PrintLog($"Received an update for target temperature");
-            PrintLog(desiredProperties.ToJson());
-
-            double targetTemperature = GetPropertyFromTwin<double>(desiredProperties, "targettemperature");
-            await UpdateCurrentTemperatureAsync(targetTemperature).ConfigureAwait(false);
+            (bool targetTempUpdateReceived, double targetTemperature) = GetPropertyFromTwin<double>(desiredProperties, "targetTemperature");
+            if (targetTempUpdateReceived)
+            {
+                PrintLog($"Received an update for target temperature");
+                await UpdateCurrentTemperatureAsync(targetTemperature).ConfigureAwait(false);
+            }
+            else
+            {
+                PrintLog($"Received an unrecognized property update from service");
+            }
         }
 
         // Send the current temperature over telemetry and reported property.
         private static async Task SendCurrentTemperatureAsync()
         {
+            // Send current temperature over telemetry.
             string telemetryName = "temperature";
 
             // Generate a random value between 40F and 90F for the current temperature reading.
-            double currentTemperature = new Random().NextDouble() * 50 + 40;
+            double currentTemperature = new Random().Next(40, 90);
 
             string telemetryPayload = $"{{ \"{telemetryName}\": {currentTemperature} }}";
             var message = new Message(Encoding.UTF8.GetBytes(telemetryPayload))
@@ -90,7 +99,13 @@ namespace SimpleThermostat
             };
 
             await s_deviceClient.SendEventAsync(message).ConfigureAwait(false);
-            PrintLog($"Sent current temperature {currentTemperature} over telemetry.");
+            PrintLog($"Sent current temperature {currentTemperature}F over telemetry.");
+
+            // Send current temperature over reported property.
+            var reportedProperty = new TwinCollection();
+            reportedProperty["currentTemperature"] = currentTemperature;
+            await s_deviceClient.UpdateReportedPropertiesAsync(reportedProperty).ConfigureAwait(false);
+            PrintLog($"Sent current temperature {currentTemperature}F over reported property update.");
         }
 
         // Update the temperature over telemetry and reported property, based on the target temperature update received.
@@ -106,13 +121,13 @@ namespace SimpleThermostat
             };
 
             await s_deviceClient.SendEventAsync(message).ConfigureAwait(false);
-            PrintLog($"Sent current temperature {targetTemperature} over telemetry.");
+            PrintLog($"Sent current temperature {targetTemperature}F over telemetry.");
 
             // Send temperature update over reported property.
             var reportedProperty = new TwinCollection();
-            reportedProperty["currenttemperature"] = targetTemperature;
+            reportedProperty["currentTemperature"] = targetTemperature;
             await s_deviceClient.UpdateReportedPropertiesAsync(reportedProperty).ConfigureAwait(false);
-            PrintLog($"Sent current temperature {targetTemperature} over reported property update.");
+            PrintLog($"Sent current temperature {targetTemperature}F over reported property update.");
         }
 
         // The callback to handle "reboot" command. This method will send a temperature update (of 0) over telemetry,
@@ -125,9 +140,9 @@ namespace SimpleThermostat
             return new MethodResponse(200);
         }
 
-        private static T GetPropertyFromTwin<T>(TwinCollection collection, string propertyName)
+        private static (bool, T) GetPropertyFromTwin<T>(TwinCollection collection, string propertyName)
         {
-            return collection.Contains(propertyName) ? (T)collection[propertyName] : default;
+            return collection.Contains(propertyName) ? (true, (T)collection[propertyName]) : (false, default);
         }
 
         private static void PrintLog(string message)
