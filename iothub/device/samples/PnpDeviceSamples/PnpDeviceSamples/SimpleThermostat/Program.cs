@@ -63,7 +63,7 @@ namespace SimpleThermostat
             await s_deviceClient.OpenAsync().ConfigureAwait(false);
         }
 
-        // The desired property update callback, which receives the target temperture as a desired property update,
+        // The desired property update callback, which receives the target temperature as a desired property update,
         // and updates the current temperature value over telemetry and reported property update.
         private static async Task TargetTemperatureUpdateCallbackAsync(TwinCollection desiredProperties, object userContext)
         {
@@ -112,10 +112,10 @@ namespace SimpleThermostat
             var reportedProperty = new TwinCollection();
             reportedProperty["currenttemperature"] = targetTemperature;
             await s_deviceClient.UpdateReportedPropertiesAsync(reportedProperty).ConfigureAwait(false);
-            PrintLog($"Sent current temperature {targetTemperature} over reoprted property update.");
+            PrintLog($"Sent current temperature {targetTemperature} over reported property update.");
         }
 
-        // The callback to handle "reboot" command. This method will send a temeprature update (of 0) over telemetry, 
+        // The callback to handle "reboot" command. This method will send a temperature update (of 0) over telemetry,
         // and also reset the temperature property to 0.
         private static async Task<MethodResponse> HandleRebootCommandAsync(MethodRequest request, object userContext)
         {
